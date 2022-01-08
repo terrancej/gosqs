@@ -1,6 +1,8 @@
 package gosqs
 
 import (
+	"log"
+	"os"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,11 +14,6 @@ import (
 
 // Config defines the gosqs configuration
 type Config struct {
-	// private key to access aws
-	Key string
-	// secret to access aws
-	Secret string
-	// region for aws and used for determining the topic ARN
 	Region string
 	// provided automatically by aws, but must be set for emulators or local testing
 	Hostname string
@@ -110,8 +107,32 @@ func (r retryer) MaxRetries() int {
 
 // newSession creates a new aws session
 func newSession(c Config) (*session.Session, error) {
+	awsConfig := &aws.Config{
+		Region:     aws.String(c.Region),
+		MaxRetries: aws.Int(3),
+	}
+
+	if !isLocal() {
+		sess, err := session.NewSession(awsConfig)
+		if err != nil {
+			return nil, err
+		}
+		return sess, nil
+	}
 	//sets credentials
-	creds := credentials.NewStaticCredentials(c.Key, c.Secret, "")
+	// In Local, using ENV key and it's required
+	awsKey := os.Getenv("AWS_ACCESS_KEY_ID")
+	if awsKey == "" {
+		log.Fatal("AWS_ACCESS_KEY_ID is not set")
+	}
+
+	awsSecret := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	if awsSecret == "" {
+		log.Fatal("AWS_SECRET_ACCESS_KEY is not set")
+	}
+	// if token not set assume we dont need it
+	awsToken := os.Getenv("AWS_SESSION_TOKEN")
+	creds := credentials.NewStaticCredentials(awsKey, awsSecret, awsToken)
 	_, err := creds.Get()
 	if err != nil {
 		return nil, ErrInvalidCreds.Context(err)
@@ -119,7 +140,7 @@ func newSession(c Config) (*session.Session, error) {
 
 	r := &retryer{retryCount: c.RetryCount}
 
-	cfg := request.WithRetryer(aws.NewConfig().WithRegion(c.Region).WithCredentials(creds), r)
+	cfg := request.WithRetryer(awsConfig.WithCredentials(creds), r)
 
 	//if an optional hostname config is provided, then replace the default one
 	//
@@ -129,4 +150,13 @@ func newSession(c Config) (*session.Session, error) {
 	}
 
 	return session.NewSession(cfg)
+}
+
+func isLocal() bool {
+	envLevel, ok := os.LookupEnv("ENV")
+	if !ok {
+		envLevel = "dev"
+	}
+	return envLevel != "production" &&
+		envLevel != "staging"
 }

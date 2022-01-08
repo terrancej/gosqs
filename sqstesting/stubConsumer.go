@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/qhenkart/gosqs"
+	"github.com/terrancej/gosqs"
 )
 
 // StubMessage provides a stub framework for consumer unit tests

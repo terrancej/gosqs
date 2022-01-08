@@ -1,7 +1,7 @@
 package example
 
 import (
-	"github.com/qhenkart/gosqs"
+	"github.com/terrancej/gosqs"
 )
 
 func main() {

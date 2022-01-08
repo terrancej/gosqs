@@ -3,7 +3,7 @@ package example
 import (
 	"net/http"
 
-	"github.com/qhenkart/gosqs"
+	"github.com/terrancej/gosqs"
 )
 
 // ServiceHandler example http handler
