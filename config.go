@@ -38,6 +38,9 @@ type Config struct {
 	// set to 0 to turn off extension processing
 	ExtensionLimit *int
 
+	// optional flag to use localstack for services
+	Local bool
+
 	// Add custom attributes to the message. This might be a correlationId or client meta information
 	// custom attributes will be viewable on the sqs dashboard as meta data
 	Attributes []customAttribute
@@ -119,6 +122,18 @@ func newSession(c Config) (*session.Session, error) {
 		}
 		return sess, nil
 	}
+
+	if c.Local {
+		sess, err := session.NewSession(&aws.Config{
+			Endpoint: aws.String("http://localhost:4566"),
+			Region:   aws.String(c.Region)},
+		)
+		if err != nil {
+			return nil, err
+		}
+		return sess, nil
+	}
+
 	//sets credentials
 	// In Local, using ENV key and it's required
 	awsKey := os.Getenv("AWS_ACCESS_KEY_ID")
